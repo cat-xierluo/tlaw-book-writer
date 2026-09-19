@@ -77,54 +77,55 @@ lark-cli api GET /open-apis/docx/v1/documents/<standards_obj_token> \
 
 涨过基线 = 规范被静默修改 → 重拉 raw_content、diff 本地 V1.1 归档、更新 checklist/profile、抬高基线，然后才继续写作（SKILL §2bis）。
 
-## §3 文档写入（⚠️ 未真机验证——首用先建测试文档）
 
-### 路线 A（推荐待验证）：md 导入任务 → 挂载知识库
+## §3 文档写入（⚠️ wiki 写入受组织限制——详见 §3.0；云盘路径 ✅ 已验证）
 
-飞书导入任务原生支持 markdown → docx，块结构由平台生成（比手搓块稳）：
+### §3.0 已知限制：wiki 空间写入的组织门槛
+
+**问题**：飞书 wiki 空间的建节点/移入文档等写入操作，要求 API 调用者必须是**空间所在组织的成员**。如果你的飞书账号不在该组织——即使有正确的 OAuth scope、即使浏览器里能正常编辑文档——API 写入仍会报 `131006 permission denied`。
+
+**根因**：飞书 OAuth token 按**组织**（tenant）签发；跨组织访问走的是浏览器的跨租户分享通道，API 走的是组织内的 token 校验，两条通道的权限模型不同。
+
+**自查方法**：
 
 ```bash
-# 1. 上传 md 到云空间（import 专用父类型）
-lark-cli api POST /open-apis/drive/v1/files/upload_all \
-  --data '{"file_name":"3.4-测试.md","parent_type":"ccm_import_open","parent_node":"ccm_import_open","size":<字节数>}' \
-  # ↑ 二进制上传需 -o/--file 形式，以 lark-cli drive 子命令或 schema 现查为准
-
-# 2. 创建导入任务（md → docx；mount_type 2 = 知识库，mount_key = space_id）
-lark-cli api POST /open-apis/drive/v1/import_tasks \
-  --data '{"file_extension":"md","file_token":"<上一步 file_token>","point":{"mount_type":2,"mount_key":"<space_id>"},"file_name":"2.5 撰写庭审讯问提纲-张三"}'
-
-# 3. 轮询任务结果 → 拿到 docx token
-lark-cli api GET /open-apis/drive/v1/import_tasks/<ticket> --as user
+# 查看你的 tenant_key
+lark-cli api GET /open-apis/authen/v1/user_info --as user --jq '.data.tenant_key'
+# 对比知识库 URL 的域名前缀（如 xxx.feishu.cn → 组织前缀 xxx）
+# 不一致 = 跨组织，wiki 写入会被拦
 ```
 
-### 路线 B（备选）：直接建节点 + 逐块写入
+**解决方式**：让知识库管理员把你拉进空间所在的飞书组织，然后 `lark-cli auth login --domain wiki` 重新授权。
+
+### §3.1 推荐路径（✅ 已验证）：云盘建 docx + 写入内容
+
+**绕过 wiki 限制**——直接在项目的云盘文件夹（drive）里建飞书文档，写入内容：
 
 ```bash
-# 1. 在章节父节点下建 docx（parent_node_token 从章节节点链接解析）
-lark-cli api POST /open-apis/wiki/v2/spaces/<space_id>/nodes \
-  --data '{"obj_type":"docx","title":"2.5 撰写庭审讯问提纲-张三","parent_node_token":"<章节节点>"}'
+# 1. 在项目云盘指定文件夹里建 docx（folder_token 从 profile.feishu 获取）
+lark-cli api POST /open-apis/docx/v1/documents \
+  --data '{"title":"<文档标题>","folder_token":"<项目云盘文件夹 token>"}'
 
-# 2. 逐块追加正文（根块 id = document_id；block 结构先现查 schema，勿凭记忆写）
-lark-cli schema docx.block.children.create          # 查块结构与 block_type 枚举
+# 2. 逐块写入内容（root block id = document_id）
+#    md → 块映射：#→heading1(block_type:3) / ##→heading2(4) / ###→heading3(5) / ####→heading4(6)
+#    普通段→text(2)、代码块→code(14)、引用→quote、图片→media(27)
 lark-cli api POST /open-apis/docx/v1/documents/<doc_id>/blocks/<doc_id>/children \
-  --data '{"children":[ ... ]}'
+  --data '{"children":[ ...blocks... ]}'
+
+# 3. 读回验证
+lark-cli api GET /open-apis/docx/v1/documents/<doc_id>/raw_content --as user
 ```
 
-**md → 块映射**（`#`→heading1、`##`→heading2、`###`→heading3、`####`→heading4、普通段→text、代码块→code、`>`→quote；具体 block_type 数值以 `lark-cli schema` 现查为准，勿硬编码）。
+**已验证结论**：
+- ✅ 建云文档（个人空间/项目云盘根级文件夹）
+- ✅ 写入 heading1-4 / text / code / quote 块
+- ✅ 读回内容完整
+- ❌ 移入 wiki 空间/章节子文件夹（组织限制）
+- 文档出现在云盘指定位置，浏览器可见；如需放入 wiki 章节，手动拖入
 
-### 图片
+### §3.2 备选（⚠️ 受 §3.0 组织限制）：md 导入任务 → 挂载知识库
 
-```bash
-# 上传原图（PNG ≥1200px；上传后再插图块；文件名与图名一致）
-lark-cli api POST /open-apis/drive/v1/medias/upload_all \
-  --data '{"file_name":"3.4-图02-创建技能入口.png","parent_type":"docx_image","parent_node":"<doc_id>","size":<字节数>}'
-```
-
-### 验证纪律
-
-1. 首用任一路线：先以《X.X-通道测试-<作者名>》为题在知识库建测试文档，全流程走通（含标题样式、代码块、题注）后**删除测试文档**，方可用于正式章节。
-2. 写入只用于**新建自己的章节文档**；修改一律回飞书 UI 走"修订"模式（API 修订模式不可用）。
-3. 导入/建文后人工核对：H1 唯一（文章题）、编号未触发自动有序列表、代码块完整、图位与题注正确。
+飞书导入任务原生支持 markdown → docx，块结构由平台生成。**前提：你的账号在 wiki 空间所在组织内。**
 
 ## §4 常用节点
 
