@@ -1,0 +1,79 @@
+# 项目口径配置模板（tlaw-book-writer 分发件）
+# 用法：复制本文件为 config/project-profile.yaml（本地实例，不入分发包），把标 <…> 的占位换成真实值。
+# 环境相关字段（文档路径 / 飞书 token / 哨兵基线 / 作者章节）一律只写在本地实例；本模板不含任何真实 token 与个人配置。
+
+# ── 作者配置（待填；可手改，也可首次使用时由 agent 引导问答/飞书表格读取+确认后自动写入）──
+author:
+  name: "<你的署名>"                    # 出现在文档标题（章号节号 标题-作者）与交稿动作中
+  sections: []                          # 你在写的小节，如 ["2.5","2.6"] 或 ["3.1","3.2","3.3","3.4","3.5"]
+  chapters: []                          # 整章在写可只填章号，如 ["3"]；与 sections 二选一或并用
+  # 备注可写草稿状态：sections_note: "3.x 为草稿，等确认后并入"
+
+book_code: "TLAW"   # 项目代号
+
+project: <项目名>
+book_title: <书名全称>
+standards_doc: "<写作规范 md 路径>"
+standards_version: "<版本与日期>"
+standards_doc_legacy: null   # 历史参考（Word 时代 V1.3）不随包分发
+
+# 文档标题（依项目规范填）
+naming_pattern: "章号.节号 标题-作者"   # 依项目规范
+naming_example: "2.5 撰写庭审讯问提纲-<你的署名>"   # 待填
+
+word_count_range: [<下限>, <上限>]
+
+# 违禁词（分三级；全文扫描，含正文与图内文字提示）
+banned_terms:                            # 完整清单按你的书稿口径填入本地实例（结构示例如下）
+  forbidden:
+    - <方法论框架名与专有标签>              # 依项目 IP 口径
+    - <其他厂商模型 / 产品 / 服务>
+    - <内部资产名>
+  confirm:
+    - <待定比喻/提法>
+  allowed:
+    - <本项目获准产品名>
+    - <通用术语>
+
+terminology:
+  <术语>: "<大小写与用法约束>"
+
+sensitive_patterns:
+  - 当事人真实姓名 / 具体案号（演示一律虚构：如 (2026)苏05民初XXXX号 或明标"虚构"）
+  - 真实客户与律所内部案卷标识
+  - 地名 + 具体交易细节组合
+
+demo_material_rule: "演示材料只用虚构样本或公开文书；公开案例须标注来源；截图界面不含真实案件信息"
+
+# 目录与节说明（覆盖检查的基准；升级目录版本时同步）
+toc_version: "<版本>"
+toc_path: "<目录 md 路径>"
+chapter_map: "<章序概述>"
+
+extraction_report: null                     # 可选：范文提取报告路径（随配套材料提供，本仓不含）；null=跳过风格基线报告，仅读范稿原文
+sample_docs:
+  - "<范稿一路径>"
+  - "<范稿二路径>"
+  - "<范稿三路径>"
+sample_note: "<范稿来源与禁学内容说明——只学体例不学选材>"
+
+# 交付流程提醒（按本书规范与节点填）
+submission_flow:                        # 按你的写作规范填入
+  - "md 粘贴/转入知识库对应章节节点（md #/##/###/#### 对应飞书 H1–H4；手动编号，勿用有序列表）"
+  - "文档标题=章号节号 标题-作者；正文第一标题与之一致"
+  - "截图 PNG≥1200px、标注正红 1.5 磅；文中居中+图下题注；原图上传『图片原图』目录（文件名=图名）"
+  - "字体字号不管（最终导出 Word 的流程统一处理）；进度表更新状态；评论处理完毕"
+
+# 飞书（lark-cli 可选增强；命令见 references/feishu-cli-cookbook.md）
+# token 获取：文档/知识库链接中 wiki/<token> 段；obj_token 用 lark-cli get_node 解析（见 cookbook §1）
+feishu:
+  space_id: null                        # 知识库 space id（从节点解析）
+  kb_wiki_token: null                   # 知识库入口节点
+  standards_wiki_token: null            # 规范 wiki token
+  standards_obj_token: null             # 规范文档 obj_token（哨兵查询用）
+  revision_baseline: null               # 待填：首次拉取规范时记录 revision_id（获取法见 cookbook §2；null=不启用哨兵）
+  terminology_token: null               # 术语表节点（V1.1 要求写作前必读）
+  progress_token: null                  # 创作进度表节点
+  sample_node_token: null               # 知识库"标准样文"节点
+  chapter_nodes: {}                     # 各章父节点 token（写入通道 c 用）
+  delivery_channel: "a"                 # a=手动粘贴（默认） / b=他人代转 / c=lark-cli 写入（须先真机验证）
