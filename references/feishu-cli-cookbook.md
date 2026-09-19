@@ -106,6 +106,8 @@ lark-cli api GET /open-apis/authen/v1/user_info --as user --jq '.data.tenant_key
 lark-cli api POST /open-apis/docx/v1/documents \
   --data '{"title":"<文档标题>","folder_token":"<项目云盘文件夹 token>"}'
 
+# 1.5 写入前清理：去除 md 标记；表格转文字要点；无截图的图位删除
+
 # 2. 逐块写入内容（root block id = document_id）
 #    md → 块映射：#→heading1(block_type:3) / ##→heading2(4) / ###→heading3(5) / ####→heading4(6)
 #    普通段→text(2)、代码块→code(14)、引用→quote、图片→media(27)

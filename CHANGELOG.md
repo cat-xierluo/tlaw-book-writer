@@ -10,3 +10,13 @@
 - **`references/feishu-cli-cookbook.md`**：飞书 CLI 手册（连接上手 / 活体读取 / 规范更新哨兵 / 文档创建与块写入 / 图片上传；各节标注验证状态）。
 - **`config/project-profile.example.yaml`**：配置模板（零真实 token；复制为本地实例使用，.gitignore 排除）。
 - 技能上下文文件：CHANGELOG / DECISIONS / TASKS。
+
+---
+
+## [1.1.0] - 2026-09-20
+
+### 新增
+
+- SKILL 写作节 6→9 条：+通俗不自嗨显式化、+多身份通用、+表格处理（API 写入转文字要点）、+无图不写占位、+md 标记清理
+- checklist E 区 5→8 项（+E6 表格无残留、+E7 无截图删图位、+E8 md 标记清理）
+- cookbook §3.1 补"写入前清理"步骤
